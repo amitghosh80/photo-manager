@@ -1,0 +1,1918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo Curator</title>
+  <style>
+    /* ── Reset & base ────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0d0f1a;
+      --surface:     #1c2033;
+      --surface2:    #141726;
+      --border:      #2e3454;
+      --border-light:#404878;
+      --text:        #eceef5;
+      --muted:       #8891b4;
+      --gold:        #f5c542;
+      --silver:      #c0c0c0;
+      --bronze:      #cd7f32;
+      --accent:      #f5c542;
+      --blue:        #4a9eff;
+      --green:       #3ecf8e;
+      --radius:      10px;
+      --transition:  0.25s ease;
+    }
+
+    html, body {
+      height: 100%;
+      background: radial-gradient(ellipse at 50% 0%, #1a1f38 0%, #0d0f1a 65%);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Screen switcher ──────────────────────────────────────────────── */
+    .screen {
+      display: none;
+      min-height: 100vh;
+    }
+    .screen.active { display: flex; }
+
+    /* ── INPUT SCREEN ─────────────────────────────────────────────────── */
+    #screen-input {
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 0;
+      padding: 2rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 56px;
+    }
+    .brand-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--gold) 0%, #e08c00 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .brand-name {
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      color: var(--text);
+    }
+    .brand-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .input-card {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 40px 44px 44px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    }
+
+    .input-card h2 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .input-card p {
+      color: var(--muted);
+      font-size: 13.5px;
+      margin-bottom: 28px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .trip-input-wrap {
+      position: relative;
+    }
+    #trip-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--surface2);
+      border: 1.5px solid var(--border-light);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 16px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    #trip-input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(245,197,66,0.15);
+    }
+    #trip-input::placeholder { color: var(--muted); }
+
+    /* Trip suggestions dropdown */
+    #trip-suggestions {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0; right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius);
+      overflow: hidden;
+      z-index: 10;
+      display: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    }
+    #trip-suggestions.open { display: block; }
+    .suggestion-item {
+      padding: 10px 16px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background var(--transition);
+    }
+    .suggestion-item:hover { background: var(--border); }
+    .suggestion-count { font-size: 12px; color: var(--muted); }
+
+    /* Options row */
+    .options-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .option-field { flex: 1; }
+    .option-field label {
+      font-size: 11.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .option-field input[type="number"] {
+      width: 100%;
+      padding: 9px 12px;
+      background: var(--surface2);
+      border: 1.5px solid var(--border-light);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .option-field input[type="number"]:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(245,197,66,0.15);
+    }
+
+    #curate-btn {
+      margin-top: 28px;
+      width: 100%;
+      padding: 13px;
+      background: var(--gold);
+      color: #000;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 0.2px;
+      transition: opacity var(--transition), transform var(--transition);
+    }
+    #curate-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    #curate-btn:active { transform: translateY(0); }
+    #curate-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    #input-error {
+      margin-top: 12px;
+      color: #ff6b6b;
+      font-size: 13px;
+      display: none;
+    }
+
+    /* ── PROGRESS SCREEN ──────────────────────────────────────────────── */
+    #screen-progress {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      gap: 0;
+    }
+
+    .progress-card {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: 16px;
+      padding: 44px 48px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    }
+
+    .progress-trip-name {
+      font-size: 13px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .progress-title {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 36px;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 28px;
+      opacity: 0.35;
+      transition: opacity var(--transition);
+    }
+    .step.active { opacity: 1; }
+    .step.done   { opacity: 0.7; }
+
+    .step-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      transition: background var(--transition);
+    }
+    .step.active .step-icon { background: #1a1a00; border: 1.5px solid var(--gold); }
+    .step.done   .step-icon { background: #0a1a0a; border: 1.5px solid var(--green); }
+
+    .step-body { flex: 1; min-width: 0; }
+    .step-label {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .step-detail {
+      font-size: 12.5px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-height: 18px;
+    }
+
+    .progress-bar-wrap {
+      height: 4px;
+      background: var(--border-light);
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--gold), #e08c00);
+      transition: width 0.3s ease;
+    }
+    .step.done .progress-bar-fill { background: var(--green); width: 100% !important; }
+
+    /* ── GALLERY SCREEN ───────────────────────────────────────────────── */
+    #screen-gallery {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 0;
+    }
+
+    .gallery-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(13,15,26,0.90);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-light);
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .gallery-header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .gallery-header-icon {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, var(--gold), #e08c00);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .gallery-trip-name {
+      font-size: 17px;
+      font-weight: 600;
+    }
+    .gallery-stats {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .gallery-header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .save-btn {
+      padding: 8px 18px;
+      background: var(--gold);
+      border: none;
+      border-radius: 8px;
+      color: #000;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: opacity var(--transition), transform var(--transition);
+    }
+    .save-btn:hover   { opacity: 0.88; transform: translateY(-1px); }
+    .save-btn:active  { transform: translateY(0); }
+    .save-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .new-trip-btn {
+      padding: 8px 18px;
+      background: transparent;
+      border: 1.5px solid var(--border-light);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition);
+    }
+    .new-trip-btn:hover { border-color: var(--gold); background: rgba(245,197,66,0.06); }
+
+    .rerun-btn {
+      padding: 8px 18px;
+      background: transparent;
+      border: 1.5px solid var(--border-light);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: border-color var(--transition), color var(--transition), background var(--transition);
+    }
+    .rerun-btn:hover { border-color: var(--muted); color: var(--text); background: rgba(255,255,255,0.04); }
+
+    .stop-btn {
+      padding: 9px 28px;
+      background: transparent;
+      border: 1.5px solid #c0392b;
+      border-radius: 8px;
+      color: #e74c3c;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition);
+    }
+    .stop-btn:hover   { background: rgba(231,76,60,0.12); color: #ff6b6b; }
+    .stop-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .gallery-body {
+      padding: 28px;
+      columns: 3;
+      column-gap: 14px;
+    }
+
+    @media (max-width: 1100px) { .gallery-body { columns: 2; } }
+    @media (max-width: 600px)  { .gallery-body { columns: 1; } }
+
+    /* ── Photo card ───────────────────────────────────────────────────── */
+    .photo-card {
+      break-inside: avoid;
+      position: relative;
+      margin-bottom: 14px;
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      background: var(--surface);
+    }
+    .photo-card img {
+      width: 100%;
+      display: block;
+      transition: transform 0.4s ease;
+    }
+    .photo-card:hover img { transform: scale(1.03); }
+
+    /* Rank badge */
+    .rank-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      backdrop-filter: blur(6px);
+      z-index: 2;
+    }
+    .rank-1 { background: rgba(245,197,66,0.92); color: #000; }
+    .rank-2 { background: rgba(192,192,192,0.92); color: #000; }
+    .rank-3 { background: rgba(205,127,50,0.92);  color: #000; }
+    .rank-n  { background: rgba(0,0,0,0.60);       color: #fff; }
+
+    /* Nearby button (appears on card hover, left of remove) */
+    .nearby-btn {
+      position: absolute;
+      top: 8px;
+      right: 74px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0,0,0,0.55);
+      color: rgba(255,255,255,0.5);
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity var(--transition), background var(--transition), color var(--transition);
+      z-index: 3;
+      backdrop-filter: blur(4px);
+    }
+    .photo-card:hover .nearby-btn { opacity: 1; }
+    .nearby-btn:hover { background: rgba(74,158,255,0.85); color: #fff; }
+
+    /* ── Nearby panel (slides up from bottom) ────────────────────────── */
+    #nearby-panel {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border-light);
+      box-shadow: 0 -12px 40px rgba(0,0,0,0.7);
+      z-index: 60;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+    }
+    #nearby-panel.open { transform: translateY(0); }
+
+    #nearby-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+    }
+    #nearby-ref-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    #nearby-ref-time {
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: 10px;
+    }
+    #nearby-count {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .nearby-close-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 18px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 4px;
+      transition: color var(--transition);
+    }
+    .nearby-close-btn:hover { color: var(--text); }
+
+    #nearby-strip {
+      display: flex;
+      gap: 10px;
+      padding: 12px 20px 16px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-light) transparent;
+    }
+    #nearby-empty {
+      padding: 24px 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .nearby-thumb {
+      flex-shrink: 0;
+      width: 130px;
+      scroll-snap-align: start;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      border: 2px solid transparent;
+      background: var(--surface2);
+      transition: border-color var(--transition);
+      cursor: default;
+    }
+    .nearby-thumb:hover { border-color: var(--border-light); }
+    .nearby-thumb.in-pool { border-color: rgba(62,207,142,0.4); }
+    .nearby-thumb img {
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      display: block;
+    }
+    .nearby-thumb-footer {
+      padding: 5px 7px;
+      font-size: 10.5px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .nearby-thumb-footer .apart { color: var(--gold); font-weight: 600; }
+    .nearby-thumb-footer .in-pool-tag { color: var(--green); }
+    .nearby-use-btn {
+      width: 100%;
+      padding: 5px 0;
+      background: var(--gold);
+      color: #000;
+      border: none;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      display: none;
+      transition: opacity var(--transition);
+    }
+    .nearby-thumb:hover .nearby-use-btn { display: block; }
+    .nearby-use-btn:hover { opacity: 0.85; }
+
+    /* Remove button */
+    .remove-btn {
+      position: absolute;
+      top: 8px;
+      right: 44px;   /* sits left of the subject badge */
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0,0,0,0.55);
+      color: rgba(255,255,255,0.5);
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity var(--transition), background var(--transition), color var(--transition);
+      z-index: 3;
+      backdrop-filter: blur(4px);
+    }
+    .photo-card:hover .remove-btn { opacity: 1; }
+    .remove-btn:hover { background: rgba(231,76,60,0.85); color: #fff; }
+
+    /* Score overlay — slides up on hover */
+    .score-overlay {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.0) 100%);
+      padding: 40px 14px 14px;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      z-index: 2;
+    }
+    .photo-card:hover .score-overlay { transform: translateY(0); }
+
+    .score-filename {
+      font-size: 11.5px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .score-agg {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--gold);
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+    .score-agg span { font-size: 13px; font-weight: 400; color: var(--muted); }
+
+    .score-bars { display: flex; flex-direction: column; gap: 5px; }
+    .score-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .score-row-label {
+      font-size: 11px;
+      color: rgba(255,255,255,0.55);
+      width: 60px;
+      flex-shrink: 0;
+    }
+    .score-row-bar {
+      flex: 1;
+      height: 3px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .score-row-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--blue), var(--green));
+    }
+    .score-row-val {
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+      width: 24px;
+      text-align: right;
+    }
+
+    .score-reason {
+      margin-top: 9px;
+      font-size: 11.5px;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.4;
+    }
+
+    /* ── Lightbox ─────────────────────────────────────────────────────── */
+    #lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox img {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 6px;
+      object-fit: contain;
+      box-shadow: 0 0 80px rgba(0,0,0,0.8);
+    }
+    #lightbox-close {
+      position: absolute;
+      top: 20px; right: 24px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: #fff;
+      font-size: 22px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--transition);
+    }
+    #lightbox-close:hover { background: rgba(255,255,255,0.2); }
+
+    /* ── Spinner ──────────────────────────────────────────────────────── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: inline-block;
+    }
+
+    /* ── API key field ────────────────────────────────────────────────── */
+    .apikey-wrap {
+      position: relative;
+      margin-top: 16px;
+    }
+    .apikey-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+    .apikey-label-row .field-label { margin-bottom: 0; }
+    .apikey-saved-badge {
+      font-size: 11px;
+      color: var(--green);
+      display: none;
+    }
+    .apikey-saved-badge.visible { display: inline; }
+
+    #api-key-input {
+      width: 100%;
+      padding: 12px 42px 12px 16px;
+      background: var(--surface2);
+      border: 1.5px solid var(--border-light);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 14px;
+      font-family: monospace;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    #api-key-input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(245,197,66,0.15);
+    }
+    #api-key-input::placeholder { color: var(--muted); font-family: inherit; }
+
+    .apikey-toggle {
+      position: absolute;
+      right: 12px;
+      bottom: 11px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1;
+      padding: 0;
+      transition: color var(--transition);
+    }
+    .apikey-toggle:hover { color: var(--text); }
+
+    /* ── Scoring warning banner ──────────────────────────────────────── */
+    .scoring-warning {
+      background: rgba(231,76,60,0.12);
+      border-bottom: 1px solid rgba(231,76,60,0.35);
+      padding: 10px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 13px;
+      color: #ff8a80;
+    }
+    .scoring-warning strong { color: #ff6b6b; }
+    .scoring-warning-rerun {
+      flex-shrink: 0;
+      padding: 5px 14px;
+      background: rgba(231,76,60,0.25);
+      border: 1px solid rgba(231,76,60,0.5);
+      border-radius: 6px;
+      color: #ff8a80;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background var(--transition);
+    }
+    .scoring-warning-rerun:hover { background: rgba(231,76,60,0.4); }
+
+    /* ── Filter panel ─────────────────────────────────────────────────── */
+    .filter-panel {
+      position: sticky;
+      top: 68px;          /* sits just below the gallery header */
+      z-index: 15;
+      background: rgba(20,23,38,0.96);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-light);
+      padding: 14px 28px 16px;
+    }
+
+    .filter-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .filter-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .filter-count {
+      font-size: 12.5px;
+      color: var(--text);
+    }
+    .filter-count strong { color: var(--gold); }
+
+    /* Top-N inline control */
+    .topn-control {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+    .topn-control label { white-space: nowrap; }
+    #topn-input {
+      width: 56px;
+      padding: 4px 8px;
+      background: var(--surface2);
+      border: 1.5px solid var(--border-light);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      text-align: center;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+    #topn-input:focus { border-color: var(--gold); }
+
+    .filter-reset {
+      background: none;
+      border: none;
+      font-size: 12px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 2px 0;
+      font-family: inherit;
+      transition: color var(--transition);
+      margin-left: 16px;
+    }
+    .filter-reset:hover { color: var(--gold); }
+
+    .filter-sliders {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0 32px;
+    }
+
+    .slider-row { display: flex; flex-direction: column; gap: 6px; }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+    .slider-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .slider-value {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gold);
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* Custom range input */
+    input[type="range"].score-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 99px;
+      outline: none;
+      cursor: pointer;
+      /* track fill set dynamically via JS */
+    }
+    input[type="range"].score-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--gold);
+      cursor: pointer;
+      box-shadow: 0 0 0 3px rgba(245,197,66,0.20);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    input[type="range"].score-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+      box-shadow: 0 0 0 5px rgba(245,197,66,0.25);
+    }
+    input[type="range"].score-slider::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--gold);
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 0 3px rgba(245,197,66,0.20);
+    }
+
+    /* ── Subject type badge ──────────────────────────────────────────── */
+    .subject-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      backdrop-filter: blur(6px);
+      z-index: 2;
+    }
+    .subject-landscape   { background: rgba(62,207,142,0.85); color: #000; }
+    .subject-portrait    { background: rgba(74,158,255,0.85); color: #000; }
+    .subject-architecture{ background: rgba(245,197,66,0.85); color: #000; }
+    .subject-wildlife    { background: rgba(255,143,88,0.85); color: #000; }
+    .subject-street      { background: rgba(192,192,192,0.85); color: #000; }
+    .subject-food        { background: rgba(255,107,107,0.85); color: #000; }
+    .subject-abstract    { background: rgba(192,105,255,0.85); color: #000; }
+    .subject-other       { background: rgba(80,80,80,0.75);  color: #ccc; }
+
+    /* ── Portrait quality sub-scores ────────────────────────────────── */
+    .portrait-section {
+      margin-top: 8px;
+      padding-top: 7px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    .portrait-label {
+      font-size: 10px;
+      color: rgba(74,158,255,0.8);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+
+    /* ── Diversity summary pill ──────────────────────────────────────── */
+    .diversity-pill {
+      display: inline-flex;
+      gap: 10px;
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .diversity-pill span { color: var(--text); }
+
+    /* Zero-result state */
+    .gallery-empty {
+      padding: 80px 28px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .gallery-empty strong { display: block; font-size: 20px; color: var(--text); margin-bottom: 8px; }
+
+    /* ── Fade-in for gallery cards ────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .photo-card { animation: fadeUp 0.4s ease both; }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     SCREEN 1: INPUT
+═══════════════════════════════════════════════════════════════════════ -->
+<div id="screen-input" class="screen active">
+  <div class="brand">
+    <div class="brand-icon">📷</div>
+    <div>
+      <div class="brand-name">Photo Curator</div>
+      <div class="brand-sub">AI-powered trip shortlisting</div>
+    </div>
+  </div>
+
+  <div class="input-card">
+    <h2>Start a curation</h2>
+    <p>Enter the name of a trip folder from <code>mytrips/</code> to find your best shots.</p>
+
+    <div class="field-label">Trip name</div>
+    <div class="trip-input-wrap">
+      <input
+        id="trip-input"
+        type="text"
+        autocomplete="off"
+        placeholder="e.g. japan-2024"
+        spellcheck="false"
+      >
+      <div id="trip-suggestions"></div>
+    </div>
+
+    <div class="options-row">
+      <div class="option-field">
+        <label>Shortlist size</label>
+        <input id="opt-topn" type="number" value="20" min="1" max="200">
+      </div>
+    </div>
+
+    <div class="apikey-wrap">
+      <div class="apikey-label-row">
+        <span class="field-label">Anthropic API key</span>
+        <span class="apikey-saved-badge" id="apikey-saved-badge">✓ saved</span>
+      </div>
+      <input
+        id="api-key-input"
+        type="password"
+        autocomplete="off"
+        placeholder="sk-ant-…"
+        spellcheck="false"
+      >
+      <button class="apikey-toggle" id="apikey-toggle" type="button"
+              onclick="toggleApiKeyVisibility()" title="Show / hide">👁</button>
+    </div>
+
+    <button id="curate-btn" onclick="startCuration()">Curate trip</button>
+    <div id="input-error"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     SCREEN 2: PROGRESS
+═══════════════════════════════════════════════════════════════════════ -->
+<div id="screen-progress" class="screen">
+  <div class="progress-card">
+    <div class="progress-trip-name" id="prog-trip-label">—</div>
+    <div class="progress-title">Curating your photos…</div>
+
+    <!-- Step: Scan -->
+    <div class="step" id="step-scan">
+      <div class="step-icon">📁</div>
+      <div class="step-body">
+        <div class="step-label">Scanning photos</div>
+        <div class="step-detail" id="step-scan-detail">Waiting…</div>
+      </div>
+    </div>
+
+    <!-- Step: Technical -->
+    <div class="step" id="step-tech">
+      <div class="step-icon">⚡</div>
+      <div class="step-body">
+        <div class="step-label">Technical analysis</div>
+        <div class="step-detail" id="step-tech-detail">Sharpness &amp; exposure</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="bar-tech"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step: AI -->
+    <div class="step" id="step-ai">
+      <div class="step-icon">🤖</div>
+      <div class="step-body">
+        <div class="step-label">AI scoring (Claude)</div>
+        <div class="step-detail" id="step-ai-detail">Composition · Clarity · Uniqueness</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="bar-ai"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step: Dedup -->
+    <div class="step" id="step-dedup">
+      <div class="step-icon">🔍</div>
+      <div class="step-body">
+        <div class="step-label">Deduplicating</div>
+        <div class="step-detail" id="step-dedup-detail">Removing near-identical shots</div>
+      </div>
+    </div>
+
+    <!-- Step: Done -->
+    <div class="step" id="step-done">
+      <div class="step-icon">✨</div>
+      <div class="step-body">
+        <div class="step-label">Building shortlist</div>
+        <div class="step-detail" id="step-done-detail">Almost there…</div>
+      </div>
+    </div>
+
+    <div style="margin-top:32px; text-align:center;">
+      <button class="stop-btn" id="stop-btn" onclick="stopCuration()">Stop</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     SCREEN 3: GALLERY
+═══════════════════════════════════════════════════════════════════════ -->
+<div id="screen-gallery" class="screen">
+  <div class="gallery-header">
+    <div class="gallery-header-left">
+      <div class="gallery-header-icon">📷</div>
+      <div>
+        <div class="gallery-trip-name" id="gallery-trip-name">—</div>
+        <div class="gallery-stats" id="gallery-stats">—</div>
+        <div class="diversity-pill" id="diversity-pill" style="display:none"></div>
+      </div>
+    </div>
+    <div class="gallery-header-right">
+      <button class="save-btn" id="save-btn" onclick="saveShortlist()">↓ Save shortlist</button>
+      <button class="rerun-btn" id="rerun-btn" onclick="rerunCuration()" title="Discard cache and re-score from scratch">↺ Re-run</button>
+      <button class="new-trip-btn" onclick="goToInput()">← New trip</button>
+    </div>
+  </div>
+  <!-- Scoring quality warning (shown when Claude API calls all failed) -->
+  <div class="scoring-warning" id="scoring-warning" style="display:none">
+    <span>
+      <strong>AI scoring failed on the last run</strong> — all photos have default 5.0 scores
+      because every Claude API call returned an error. Deduplication and diversity selection
+      cannot work correctly without real scores.
+    </span>
+    <button class="scoring-warning-rerun" onclick="rerunCuration()">↺ Re-score now</button>
+  </div>
+
+  <!-- Filter panel -->
+  <div class="filter-panel">
+    <div class="filter-top">
+      <span class="filter-title">Refine by score</span>
+      <span style="display:flex;align-items:center;gap:16px;">
+        <span class="topn-control">
+          <label for="topn-input">Show top</label>
+          <input id="topn-input" type="number" min="1" max="500" value="20">
+        </span>
+        <span class="filter-count" id="filter-count"></span>
+        <button class="filter-reset" id="filter-reset-btn" onclick="resetFilters()">Reset</button>
+      </span>
+    </div>
+    <div class="filter-sliders">
+
+      <div class="slider-row">
+        <div class="slider-header">
+          <span class="slider-label">Composition</span>
+          <span class="slider-value" id="val-comp">0.0+</span>
+        </div>
+        <input type="range" id="slider-comp" class="score-slider"
+               min="0" max="10" step="0.1" value="0">
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-header">
+          <span class="slider-label">Subject Clarity</span>
+          <span class="slider-value" id="val-clarity">0.0+</span>
+        </div>
+        <input type="range" id="slider-clarity" class="score-slider"
+               min="0" max="10" step="0.1" value="0">
+      </div>
+
+      <div class="slider-row">
+        <div class="slider-header">
+          <span class="slider-label">Uniqueness</span>
+          <span class="slider-value" id="val-unique">0.0+</span>
+        </div>
+        <input type="range" id="slider-unique" class="score-slider"
+               min="0" max="10" step="0.1" value="0">
+      </div>
+
+    </div>
+  </div>
+
+  <div class="gallery-body" id="gallery-body"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     NEARBY PANEL
+═══════════════════════════════════════════════════════════════════════ -->
+<div id="nearby-panel">
+  <div id="nearby-panel-header">
+    <div>
+      <span id="nearby-ref-name"></span>
+      <span id="nearby-ref-time"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <span id="nearby-count"></span>
+      <button class="nearby-close-btn" onclick="closeNearby()">✕</button>
+    </div>
+  </div>
+  <div id="nearby-strip"></div>
+  <div id="nearby-empty" style="display:none"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     LIGHTBOX
+═══════════════════════════════════════════════════════════════════════ -->
+<div id="lightbox">
+  <button id="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════════════════ -->
+<script>
+  // ── Screen helpers ─────────────────────────────────────────────────
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function goToInput() {
+    showScreen('screen-input');
+    document.getElementById('trip-input').focus();
+  }
+
+  // ── Trip suggestions ───────────────────────────────────────────────
+  let allTrips = [];
+
+  async function loadTrips() {
+    try {
+      const res = await fetch('/api/trips');
+      allTrips = await res.json();
+    } catch (_) { allTrips = []; }
+  }
+
+  const tripInput = document.getElementById('trip-input');
+  const suggestionsEl = document.getElementById('trip-suggestions');
+
+  function renderSuggestions(query) {
+    const q = query.toLowerCase();
+    const matches = allTrips.filter(t => t.name.toLowerCase().includes(q));
+    const show = (!query) ? allTrips : matches;
+    if (!show.length) { suggestionsEl.classList.remove('open'); return; }
+    renderSuggestionItems(show);
+  }
+
+  function renderSuggestionItems(items) {
+    suggestionsEl.innerHTML = items.map(t =>
+      `<div class="suggestion-item" onclick="selectTrip('${t.name}')">
+        <span>${t.name}</span>
+        <span class="suggestion-count">${t.count} photo${t.count !== 1 ? 's' : ''}</span>
+      </div>`
+    ).join('');
+    suggestionsEl.classList.add('open');
+  }
+
+  function selectTrip(name) {
+    tripInput.value = name;
+    suggestionsEl.classList.remove('open');
+  }
+
+  tripInput.addEventListener('focus', () => renderSuggestions(tripInput.value));
+  tripInput.addEventListener('input', () => renderSuggestions(tripInput.value));
+  tripInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') startCuration();
+    if (e.key === 'Escape') suggestionsEl.classList.remove('open');
+  });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.trip-input-wrap')) suggestionsEl.classList.remove('open');
+  });
+
+  loadTrips();
+
+  // ── API key — load from localStorage on startup ────────────────────
+  const apiKeyInput  = document.getElementById('api-key-input');
+  const savedBadge   = document.getElementById('apikey-saved-badge');
+
+  (function loadSavedKey() {
+    const saved = localStorage.getItem('anthropic_api_key');
+    if (saved) {
+      apiKeyInput.value = saved;
+      savedBadge.classList.add('visible');
+    }
+  })();
+
+  apiKeyInput.addEventListener('input', () => {
+    savedBadge.classList.remove('visible');
+  });
+
+  function toggleApiKeyVisibility() {
+    apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
+  }
+
+  // ── Progress step helpers ──────────────────────────────────────────
+  function setStep(id, state) {
+    const el = document.getElementById(id);
+    el.classList.remove('active', 'done');
+    if (state) el.classList.add(state);
+  }
+  function setDetail(id, html) { document.getElementById(id).innerHTML = html; }
+  function setBar(id, pct)     { document.getElementById(id).style.width = pct + '%'; }
+  function checkIcon(stepId)   { document.querySelector(`#${stepId} .step-icon`).textContent = '✓'; }
+
+  // ── Start curation ─────────────────────────────────────────────────
+  async function startCuration(force = false) {
+    const trip    = tripInput.value.trim();
+    const topN    = parseInt(document.getElementById('opt-topn').value) || 20;
+    const apiKey  = apiKeyInput.value.trim();
+    const errorEl = document.getElementById('input-error');
+    const btn     = document.getElementById('curate-btn');
+
+    errorEl.style.display = 'none';
+    if (!trip) { showError('Please enter a trip name.'); return; }
+    // API key only required for a live run (not for cached results)
+    if (!force && !apiKey) {
+      showError('Please enter your Anthropic API key.'); apiKeyInput.focus(); return;
+    }
+
+    if (apiKey) {
+      localStorage.setItem('anthropic_api_key', apiKey);
+      savedBadge.classList.add('visible');
+    }
+
+    _currentTopN = topN;
+    btn.disabled = true;
+
+    let data;
+    try {
+      const res = await fetch('/api/curate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trip, top_n: topN, api_key: apiKey, force }),
+      });
+      data = await res.json();
+      if (!res.ok) { showError(data.error || 'Failed to start curation.'); btn.disabled = false; return; }
+    } catch (e) {
+      showError('Could not connect to server.'); btn.disabled = false; return;
+    }
+
+    // ── Cached result: skip progress screen entirely ───────────────────
+    if (data.cached) {
+      btn.disabled = false;
+      initGallery(trip, data.shortlist, data.all_photos || data.shortlist, data.total, true, data.diversity, data.scoring_quality);
+      return;
+    }
+
+    _activeJobId = data.job_id;
+    document.getElementById('prog-trip-label').textContent = trip;
+    resetProgressSteps();
+    const stopBtn = document.getElementById('stop-btn');
+    stopBtn.disabled = false;
+    stopBtn.textContent = 'Stop';
+    showScreen('screen-progress');
+
+    const es = new EventSource(`/api/progress/${_activeJobId}`);
+
+    es.addEventListener('scan', e => {
+      const d = JSON.parse(e.data);
+      setStep('step-scan', 'done'); checkIcon('step-scan');
+      let detail = `Found <strong>${d.count}</strong> photo${d.count !== 1 ? 's' : ''}`;
+      if (d.cached > 0)
+        detail += ` &nbsp;·&nbsp; <strong>${d.cached}</strong> scores cached, <strong>${d.to_score}</strong> to score`;
+      setDetail('step-scan-detail', detail);
+      setStep('step-tech', 'active');
+    });
+
+    es.addEventListener('technical', e => {
+      const d = JSON.parse(e.data);
+      const pct = Math.round(d.done / d.total * 100);
+      setDetail('step-tech-detail', `${d.done} / ${d.total}`);
+      setBar('bar-tech', pct);
+      if (d.done === d.total) {
+        setStep('step-tech', 'done'); checkIcon('step-tech');
+        setStep('step-ai', 'active');
+      }
+    });
+
+    es.addEventListener('ai', e => {
+      const d = JSON.parse(e.data);
+      // total=0 means all scores came from cache — mark done immediately
+      if (d.total === 0) {
+        setDetail('step-ai-detail', `All <strong>${d.cached}</strong> scores loaded from cache`);
+        setBar('bar-ai', 100);
+        setStep('step-ai', 'done'); checkIcon('step-ai');
+        setStep('step-dedup', 'active');
+        return;
+      }
+      const pct = Math.round(d.done / d.total * 100);
+      let detail = `${d.done} / ${d.total}`;
+      if (d.cached > 0) detail += ` &nbsp;·&nbsp; ${d.cached} from cache`;
+      if (d.filename)   detail += ` &nbsp;·&nbsp; <em>${escHtml(d.filename)}</em>`;
+      setDetail('step-ai-detail', detail);
+      setBar('bar-ai', pct);
+      if (d.done === d.total) {
+        setStep('step-ai', 'done'); checkIcon('step-ai');
+        setStep('step-dedup', 'active');
+      }
+    });
+
+    es.addEventListener('dedup', () => {
+      setDetail('step-dedup-detail', 'Removing near-identical shots…');
+    });
+
+    es.addEventListener('complete', e => {
+      const d = JSON.parse(e.data);
+      setStep('step-dedup', 'done'); checkIcon('step-dedup');
+      setStep('step-done',  'done'); checkIcon('step-done');
+      setDetail('step-done-detail', `Shortlisted <strong>${d.shortlist.length}</strong> of ${d.total} photos`);
+      es.close();
+      _activeJobId = null;
+      setTimeout(() => initGallery(trip, d.shortlist, d.all_photos || d.shortlist, d.total, false, d.diversity, d.scoring_quality), 600);
+    });
+
+    es.addEventListener('cancelled', () => {
+      es.close();
+      _activeJobId = null;
+      btn.disabled = false;
+      // Go back to gallery if cached results exist, otherwise input screen
+      const cachedTrip = _currentTrip;
+      if (cachedTrip && _allPhotos.length) {
+        showScreen('screen-gallery');
+      } else {
+        showScreen('screen-input');
+      }
+    });
+
+    es.addEventListener('error', e => {
+      if (e.data) { const d = JSON.parse(e.data); alert('Error: ' + (d.message || 'unknown')); }
+      es.close(); _activeJobId = null; btn.disabled = false; showScreen('screen-input');
+    });
+
+    es.addEventListener('close', () => { es.close(); _activeJobId = null; });
+    btn.disabled = false;
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('input-error');
+    el.textContent = msg; el.style.display = 'block';
+  }
+
+  function resetProgressSteps() {
+    ['step-scan','step-tech','step-ai','step-dedup','step-done'].forEach(id => {
+      setStep(id, '');
+      document.querySelector(`#${id} .step-icon`).textContent =
+        { 'step-scan':'📁','step-tech':'⚡','step-ai':'🤖','step-dedup':'🔍','step-done':'✨' }[id];
+    });
+    setBar('bar-tech', 0); setBar('bar-ai', 0);
+    setDetail('step-scan-detail',  'Waiting…');
+    setDetail('step-tech-detail',  'Sharpness &amp; exposure');
+    setDetail('step-ai-detail',    'Composition · Clarity · Uniqueness');
+    setDetail('step-dedup-detail', 'Removing near-identical shots');
+    setDetail('step-done-detail',  'Almost there…');
+    setStep('step-scan', 'active');
+  }
+
+  // ── Active job ─────────────────────────────────────────────────────
+  let _activeJobId  = null;
+
+  async function stopCuration() {
+    if (!_activeJobId) return;
+    const btn = document.getElementById('stop-btn');
+    btn.disabled = true;
+    btn.textContent = 'Stopping…';
+    await fetch(`/api/cancel/${_activeJobId}`, { method: 'POST' }).catch(() => {});
+    // The SSE 'cancelled' event will handle the transition
+  }
+
+  // ── Gallery state ──────────────────────────────────────────────────
+  let _allPhotos     = [];
+  let _removedPhotos = new Set();   // filenames excluded from the active pool
+  let _currentTrip   = '';
+  let _totalScanned  = 0;
+  let _currentTopN   = 20;
+
+  // ── Save shortlist to disk ─────────────────────────────────────────
+  async function saveShortlist() {
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    // Collect filenames in the order currently displayed
+    const thresholds = SLIDERS.map(({ id, key }) => ({
+      key, min: parseFloat(document.getElementById(id).value),
+    }));
+    const pool = _allPhotos.filter(p => !_removedPhotos.has(p.filename)).slice(0, _currentTopN);
+    let displayed = pool.filter(photo =>
+      thresholds.every(({ key, min }) => (photo.ai_scores[key] ?? 0) >= min)
+    );
+    displayed = [...displayed].sort((a, b) => {
+      if (!a.taken_at && !b.taken_at) return 0;
+      if (!a.taken_at) return 1;
+      if (!b.taken_at) return -1;
+      return a.taken_at < b.taken_at ? -1 : a.taken_at > b.taken_at ? 1 : 0;
+    });
+
+    try {
+      const res  = await fetch(`/api/save-shortlist/${encodeURIComponent(_currentTrip)}`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ filenames: displayed.map(p => p.filename) }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert('Save failed: ' + (data.error || 'unknown error'));
+      } else {
+        btn.textContent = `✓ Saved ${data.saved} photos`;
+        if (data.missing.length)
+          console.warn('Missing files:', data.missing);
+        setTimeout(() => { btn.textContent = '↓ Save shortlist'; btn.disabled = false; }, 3000);
+        return;
+      }
+    } catch (e) {
+      alert('Save failed: could not reach server.');
+    }
+    btn.textContent = '↓ Save shortlist';
+    btn.disabled = false;
+  }
+
+  // ── Re-run: force fresh curation for the current gallery trip ────────
+  function rerunCuration() {
+    tripInput.value = _currentTrip;
+    document.getElementById('opt-topn').value = _currentTopN;
+    startCuration(true);  // force=true bypasses cache
+  }
+
+  // ── Init gallery (called once after curation completes or from cache) ─
+  function initGallery(trip, shortlist, allPhotos, total, fromCache = false, diversity = null, scoringQuality = 'ok') {
+    _allPhotos     = allPhotos;   // full deduped pool — sliders filter from this
+    _removedPhotos = new Set();
+    _currentTrip   = trip;
+    _totalScanned  = total;
+    _currentTopN   = shortlist.length;
+
+    const topnEl = document.getElementById('topn-input');
+    topnEl.value = _currentTopN;
+    topnEl.removeAttribute('max');   // no browser clamping — handle in JS
+    document.getElementById('scoring-warning').style.display =
+      scoringQuality === 'defaults' ? '' : 'none';
+
+    document.getElementById('gallery-trip-name').textContent = trip;
+    document.getElementById('gallery-stats').textContent =
+      `${shortlist.length} curated · from ${total} scanned` +
+      (fromCache ? ' · from cache' : '');
+
+    // Diversity summary
+    const pill = document.getElementById('diversity-pill');
+    if (diversity) {
+      const subjectStr = Object.entries(diversity.subject_counts || {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 4)
+        .map(([k, v]) => `${v} ${k}`)
+        .join(' · ');
+      pill.innerHTML = `<span>${diversity.scene_count}</span> scenes` +
+        (subjectStr ? ` &nbsp;·&nbsp; ${subjectStr}` : '');
+      pill.style.display = '';
+    } else {
+      pill.style.display = 'none';
+    }
+
+    // Position each slider at the minimum score of the top-N shortlist.
+    // This shows exactly the shortlisted photos initially.
+    // Drag down → reveal more from the full pool; drag up → narrow further.
+    SLIDERS.forEach(({ id, valId, key }) => {
+      const min = shortlist.length
+        ? Math.min(...shortlist.map(p => p.ai_scores[key] ?? 0))
+        : 0;
+      const val = Math.floor(min * 10) / 10;
+      const el  = document.getElementById(id);
+      el.value  = val;
+      syncSliderUI(id, valId, val);
+    });
+
+    applyFilters();
+    showScreen('screen-gallery');
+    window.scrollTo(0, 0);
+  }
+
+  // ── Top-N control ─────────────────────────────────────────────────
+  document.getElementById('topn-input').addEventListener('change', function () {
+    const n = Math.max(1, parseInt(this.value) || 1);
+    this.value = n;
+    _currentTopN = n;
+
+    const available = _allPhotos.filter(p => !_removedPhotos.has(p.filename)).length;
+    const poolExhausted = n > available;
+
+    // Show/hide the pool-exhausted hint
+    let hint = document.getElementById('topn-hint');
+    if (!hint) {
+      hint = document.createElement('span');
+      hint.id = 'topn-hint';
+      hint.style.cssText = 'font-size:11px;color:#ff8a80;margin-left:6px;';
+      document.getElementById('topn-input').after(hint);
+    }
+    hint.textContent = poolExhausted
+      ? `Only ${available} photos available — re-run for more`
+      : '';
+
+    // Reposition sliders to min scores of new pool (reset to 0 if pool expanded)
+    const pool = _allPhotos.filter(p => !_removedPhotos.has(p.filename)).slice(0, n);
+    SLIDERS.forEach(({ id, valId, key }) => {
+      const min = pool.length ? Math.min(...pool.map(p => p.ai_scores[key] ?? 0)) : 0;
+      const val = Math.floor(min * 10) / 10;
+      const el  = document.getElementById(id);
+      el.value  = val;
+      syncSliderUI(id, valId, val);
+    });
+    applyFilters();
+  });
+
+  // ── Sliders ────────────────────────────────────────────────────────
+  const SLIDERS = [
+    { id: 'slider-comp',    valId: 'val-comp',    key: 'composition'     },
+    { id: 'slider-clarity', valId: 'val-clarity', key: 'subject_clarity' },
+    { id: 'slider-unique',  valId: 'val-unique',  key: 'uniqueness'      },
+  ];
+
+  SLIDERS.forEach(({ id, valId }) => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => {
+      syncSliderUI(id, valId, parseFloat(el.value));
+      applyFilters();
+    });
+  });
+
+  function syncSliderUI(sliderId, valId, val) {
+    const pct = (val / 10) * 100;
+    const el  = document.getElementById(sliderId);
+    el.style.background =
+      `linear-gradient(to right, var(--gold) 0%, var(--gold) ${pct}%, var(--border-light) ${pct}%, var(--border-light) 100%)`;
+    document.getElementById(valId).textContent = val === 0 ? 'Any' : val.toFixed(1) + '+';
+  }
+
+  function resetFilters() {
+    SLIDERS.forEach(({ id, valId }) => {
+      const el = document.getElementById(id);
+      el.value = 0;
+      syncSliderUI(id, valId, 0);
+    });
+    applyFilters();
+  }
+
+  // ── Nearby panel ───────────────────────────────────────────────────
+  let _nearbyRef = null;   // filename of the card that opened the panel
+
+  async function openNearby(filename, takenAt) {
+    _nearbyRef = filename;
+
+    // Header
+    document.getElementById('nearby-ref-name').textContent = filename;
+    document.getElementById('nearby-ref-time').textContent =
+      takenAt ? '· ' + new Date(takenAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}) : '';
+    document.getElementById('nearby-count').textContent = 'Loading…';
+    document.getElementById('nearby-strip').innerHTML = '';
+    document.getElementById('nearby-strip').style.display = 'flex';
+    document.getElementById('nearby-empty').style.display = 'none';
+    document.getElementById('nearby-panel').classList.add('open');
+
+    try {
+      const res  = await fetch(`/api/nearby/${encodeURIComponent(_currentTrip)}/${encodeURIComponent(filename)}`);
+      const data = await res.json();
+      if (!res.ok) {
+        document.getElementById('nearby-count').textContent = data.error || 'Error';
+        return;
+      }
+
+      const nearby = data.nearby;
+      document.getElementById('nearby-count').textContent =
+        `${nearby.length} photo${nearby.length !== 1 ? 's' : ''} within ${data.window_secs}s`;
+
+      if (!nearby.length) {
+        document.getElementById('nearby-strip').style.display = 'none';
+        const em = document.getElementById('nearby-empty');
+        em.textContent = 'No other photos taken within 90 seconds of this one.';
+        em.style.display = 'block';
+        return;
+      }
+
+      const strip = document.getElementById('nearby-strip');
+      nearby.forEach(p => {
+        const inPool = _allPhotos.some(a => a.filename === p.filename) &&
+                       !_removedPhotos.has(p.filename);
+        const apartLabel = p.seconds_apart === 0 ? 'same second'
+          : p.seconds_apart < 60  ? `${p.seconds_apart}s apart`
+          : `${Math.round(p.seconds_apart / 60)}m ${p.seconds_apart % 60}s apart`;
+        const score = p.aggregate_score != null ? p.aggregate_score.toFixed(2) : '—';
+
+        const thumb = document.createElement('div');
+        thumb.className = 'nearby-thumb' + (inPool ? ' in-pool' : '');
+        thumb.innerHTML = `
+          <img src="/photos/${encodeURIComponent(_currentTrip)}/${encodeURIComponent(p.filename)}"
+               loading="lazy" alt="${escHtml(p.filename)}">
+          <button class="nearby-use-btn">Use this instead</button>
+          <div class="nearby-thumb-footer">
+            <span class="apart">${apartLabel}</span><br>
+            Score: ${score}${inPool ? ' &nbsp;<span class="in-pool-tag">· in gallery</span>' : ''}
+          </div>`;
+
+        thumb.querySelector('.nearby-use-btn').addEventListener('click', e => {
+          e.stopPropagation();
+          swapToNearby(p);
+        });
+        thumb.querySelector('img').addEventListener('click', e => {
+          e.stopPropagation();
+          openLightbox(`/photos/${encodeURIComponent(_currentTrip)}/${encodeURIComponent(p.filename)}`);
+        });
+        strip.appendChild(thumb);
+      });
+    } catch (_) {
+      document.getElementById('nearby-count').textContent = 'Failed to load';
+    }
+  }
+
+  function closeNearby() {
+    document.getElementById('nearby-panel').classList.remove('open');
+    _nearbyRef = null;
+  }
+
+  function swapToNearby(nearbyPhoto) {
+    if (!_nearbyRef) return;
+
+    // Exclude the current card
+    _removedPhotos.add(_nearbyRef);
+
+    // If the nearby photo is already in the pool, un-remove it (in case it was removed)
+    // and it will naturally appear via applyFilters
+    if (_removedPhotos.has(nearbyPhoto.filename)) {
+      _removedPhotos.delete(nearbyPhoto.filename);
+    }
+
+    // If the nearby photo isn't in _allPhotos at all, inject it
+    if (!_allPhotos.some(p => p.filename === nearbyPhoto.filename)) {
+      const refIdx = _allPhotos.findIndex(p => p.filename === _nearbyRef);
+      _allPhotos.splice(refIdx >= 0 ? refIdx : _allPhotos.length, 0, {
+        filename:        nearbyPhoto.filename,
+        path:            '',
+        taken_at:        nearbyPhoto.taken_at,
+        aggregate_score: nearbyPhoto.aggregate_score ?? 5.0,
+        ai_scores:       nearbyPhoto.ai_scores ?? {composition: 5.0, subject_clarity: 5.0, uniqueness: 5.0},
+        scene_id:        nearbyPhoto.scene_id ?? '',
+        subject_type:    nearbyPhoto.subject_type ?? 'other',
+        portrait_quality: nearbyPhoto.portrait_quality ?? null,
+        reason:          nearbyPhoto.reason ?? '',
+        rank:            999,
+      });
+    }
+
+    closeNearby();
+    applyFilters();
+  }
+
+  // Close nearby panel on Escape
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNearby(); });
+
+  function applyFilters() {
+    const thresholds = SLIDERS.map(({ id, key }) => ({
+      key,
+      min: parseFloat(document.getElementById(id).value),
+    }));
+
+    // Pool: skip removed photos, then take top-N from the ranked remainder
+    const pool = _allPhotos.filter(p => !_removedPhotos.has(p.filename)).slice(0, _currentTopN);
+
+    let filtered = pool.filter(photo =>
+      thresholds.every(({ key, min }) => (photo.ai_scores[key] ?? 0) >= min)
+    );
+
+    // Always sort chronologically; photos without a timestamp go to the end
+    filtered = [...filtered].sort((a, b) => {
+      if (!a.taken_at && !b.taken_at) return 0;
+      if (!a.taken_at) return 1;
+      if (!b.taken_at) return -1;
+      return a.taken_at < b.taken_at ? -1 : a.taken_at > b.taken_at ? 1 : 0;
+    });
+
+    updateFilterCount(filtered.length, pool.length);
+    renderPhotos(filtered);
+  }
+
+  function updateFilterCount(shown, poolSize) {
+    const el = document.getElementById('filter-count');
+    el.innerHTML = shown === poolSize
+      ? `<strong>${shown}</strong> photos`
+      : `<strong>${shown}</strong> of ${poolSize} photos`;
+  }
+
+  // ── Render photo grid ──────────────────────────────────────────────
+  function renderPhotos(photos) {
+    const body = document.getElementById('gallery-body');
+    body.innerHTML = '';
+
+    if (!photos.length) {
+      body.innerHTML = `<div class="gallery-empty">
+        <strong>No photos match</strong>
+        Lower the sliders to see more results.
+      </div>`;
+      return;
+    }
+
+    photos.forEach((item, i) => {
+      const ai          = item.ai_scores;
+      const subjectType = item.subject_type || 'other';
+      const rankClass   = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-n';
+      const delay       = Math.min(i * 30, 500);
+
+      // Portrait quality section
+      let portraitHtml = '';
+      const pq = item.portrait_quality;
+      if (pq && typeof pq === 'object') {
+        portraitHtml = `
+          <div class="portrait-section">
+            <div class="portrait-label">Portrait quality</div>
+            ${scoreRow('Expression', pq.expression ?? 5)}
+            ${scoreRow('Eyes open',  pq.eyes_open  ?? 5)}
+            ${scoreRow('Complete',   pq.subject_complete ?? 5)}
+          </div>`;
+      }
+
+      const card = document.createElement('div');
+      card.className = 'photo-card';
+      card.style.animationDelay = delay + 'ms';
+      card.innerHTML = `
+        <div class="rank-badge ${rankClass}">#${i + 1}</div>
+        <button class="nearby-btn" title="Browse photos taken around the same time">≈</button>
+        <button class="remove-btn" title="Remove from shortlist">✕</button>
+        <div class="subject-badge subject-${escHtml(subjectType)}">${escHtml(subjectType)}</div>
+        <img
+          src="/photos/${encodeURIComponent(_currentTrip)}/${encodeURIComponent(item.filename)}"
+          alt="${escHtml(item.filename)}"
+          loading="lazy"
+          onclick="openLightbox(this.src)"
+        >
+        <div class="score-overlay">
+          <div class="score-filename">${escHtml(item.filename)}</div>
+          <div class="score-agg">${item.aggregate_score.toFixed(2)}<span> / 10</span></div>
+          <div class="score-bars">
+            ${scoreRow('Composition', ai.composition)}
+            ${scoreRow('Clarity',     ai.subject_clarity)}
+            ${scoreRow('Uniqueness',  ai.uniqueness)}
+          </div>
+          ${portraitHtml}
+          ${item.reason ? `<div class="score-reason">${escHtml(item.reason)}</div>` : ''}
+        </div>`;
+      card.querySelector('.nearby-btn').addEventListener('click', e => {
+        e.stopPropagation();
+        openNearby(item.filename, item.taken_at);
+      });
+      card.querySelector('.remove-btn').addEventListener('click', e => {
+        e.stopPropagation();
+        _removedPhotos.add(item.filename);
+        applyFilters();
+      });
+      body.appendChild(card);
+    });
+  }
+
+  function scoreRow(label, val) {
+    const pct = Math.round((val / 10) * 100);
+    return `
+      <div class="score-row">
+        <div class="score-row-label">${label}</div>
+        <div class="score-row-bar"><div class="score-row-fill" style="width:${pct}%"></div></div>
+        <div class="score-row-val">${(+val).toFixed(1)}</div>
+      </div>`;
+  }
+
+  // ── Lightbox ───────────────────────────────────────────────────────
+  function openLightbox(src) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox').classList.add('open');
+  }
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+  }
+  document.getElementById('lightbox').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeLightbox();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightbox();
+  });
+
+  // ── Util ───────────────────────────────────────────────────────────
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>
