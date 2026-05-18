@@ -34,5 +34,6 @@ ENV/
 Thumbs.db
 desktop.ini
 
-# Claude Code
-.claude/
+# Claude Code — track commands but not personal settings
+.claude/settings*.json
+.claude/settings*.local.json
