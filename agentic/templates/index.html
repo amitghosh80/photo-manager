@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photo Curator — Agentic</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; min-height: 100vh; }
+    a { color: #7eb8f7; text-decoration: none; }
+
+    /* ── Layout ── */
+    #sidebar { position: fixed; top: 0; left: 0; width: 280px; height: 100vh; background: #1a1a1a;
+                border-right: 1px solid #2a2a2a; padding: 20px; overflow-y: auto; }
+    #main    { margin-left: 280px; padding: 28px 32px; }
+
+    /* ── Typography ── */
+    h1 { font-size: 1.1rem; font-weight: 600; color: #fff; margin-bottom: 20px; letter-spacing: .5px; }
+    h2 { font-size: 1.4rem; font-weight: 600; color: #fff; margin-bottom: 6px; }
+    h3 { font-size: .9rem; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: .8px;
+         margin: 20px 0 8px; }
+
+    /* ── Trip list ── */
+    .trip-item { padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: .9rem;
+                 display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .trip-item:hover, .trip-item.active { background: #2a2a2a; }
+    .trip-count { font-size: .75rem; color: #666; }
+
+    /* ── Controls ── */
+    .controls { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px;
+                padding: 16px; margin-bottom: 20px; display: flex; gap: 16px; flex-wrap: wrap;
+                align-items: flex-end; }
+    label { font-size: .8rem; color: #888; display: block; margin-bottom: 4px; }
+    input[type=number], input[type=password], select { background: #111; border: 1px solid #333; color: #e0e0e0;
+                                  padding: 6px 10px; border-radius: 5px; font-size: .9rem; }
+    input[type=number] { width: 80px; }
+    input[type=password] { width: 220px; font-family: monospace; }
+    button { padding: 8px 18px; border-radius: 6px; border: none; font-size: .9rem;
+             cursor: pointer; font-weight: 500; }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-primary:disabled { background: #1d3a6b; color: #555; cursor: default; }
+    .btn-danger  { background: #dc2626; color: #fff; }
+    .btn-danger:hover  { background: #b91c1c; }
+    .btn-ghost   { background: #2a2a2a; color: #ccc; }
+    .btn-ghost:hover   { background: #333; }
+
+    /* ── Progress ── */
+    #progress { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px;
+                padding: 20px; margin-bottom: 24px; }
+    .phase-row { display: flex; gap: 10px; margin-bottom: 16px; }
+    .phase-chip { padding: 4px 12px; border-radius: 20px; font-size: .8rem; font-weight: 500;
+                  background: #2a2a2a; color: #666; }
+    .phase-chip.active  { background: #1e3a5f; color: #7eb8f7; }
+    .phase-chip.done    { background: #14532d; color: #86efac; }
+    .pbar-wrap { background: #111; border-radius: 4px; height: 6px; margin: 8px 0; overflow: hidden; }
+    .pbar      { height: 100%; background: #3b82f6; width: 0; transition: width .3s ease; border-radius: 4px; }
+    .status-line { font-size: .82rem; color: #888; margin-top: 6px; height: 1.2em; overflow: hidden;
+                   white-space: nowrap; text-overflow: ellipsis; }
+
+    /* ── Agent log ── */
+    #agent-log { background: #111; border: 1px solid #1f2937; border-radius: 6px;
+                 padding: 12px; max-height: 200px; overflow-y: auto; font-size: .78rem;
+                 font-family: 'Courier New', monospace; color: #6b7280; margin-top: 12px; }
+    .log-tool  { color: #a78bfa; }
+    .log-phase { color: #60a5fa; }
+
+    /* ── Narrative banner ── */
+    #narrative { background: linear-gradient(135deg, #1e1b4b, #1a1a2e);
+                 border: 1px solid #312e81; border-radius: 10px; padding: 20px 24px;
+                 margin-bottom: 24px; }
+    #narrative h2 { color: #c7d2fe; }
+    #narrative p  { color: #a5b4fc; font-size: .92rem; line-height: 1.6; margin-top: 8px; }
+    .chapter-break { border-top: 1px solid #2a2a2a; padding-top: 16px; margin-top: 8px;
+                     font-size: .8rem; font-weight: 600; color: #60a5fa; text-transform: uppercase;
+                     letter-spacing: .8px; }
+
+    /* ── Gallery ── */
+    #gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+    .photo-card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; overflow: hidden;
+                  cursor: pointer; transition: border-color .15s; }
+    .photo-card:hover { border-color: #3b82f6; }
+    .photo-card img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; }
+    .photo-meta { padding: 10px 12px; }
+    .photo-rank  { font-size: .72rem; color: #666; }
+    .photo-score { font-size: 1.1rem; font-weight: 700; color: #fff; }
+    .photo-tags  { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+    .tag { font-size: .68rem; padding: 2px 7px; border-radius: 10px; background: #2a2a2a; color: #888; }
+    .tag.narrative  { background: #1e3a5f; color: #7eb8f7; }
+    .tag.tone       { background: #1c2a1c; color: #86efac; }
+    .tag.faces      { background: #2d1b4e; color: #c4b5fd; }
+    .photo-reason   { font-size: .76rem; color: #666; margin-top: 6px; font-style: italic; line-height: 1.4; }
+    .score-bars     { margin-top: 8px; display: grid; grid-template-columns: auto 1fr auto; gap: 2px 6px;
+                      align-items: center; font-size: .7rem; color: #555; }
+    .sbar { height: 3px; background: #111; border-radius: 2px; overflow: hidden; }
+    .sbar-fill { height: 100%; border-radius: 2px; background: #3b82f6; }
+
+    /* ── Detail modal ── */
+    #modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85);
+                     z-index: 100; align-items: center; justify-content: center; }
+    #modal-overlay.open { display: flex; }
+    #modal { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px;
+             width: min(90vw, 900px); max-height: 90vh; overflow-y: auto; }
+    #modal img { width: 100%; max-height: 60vh; object-fit: contain; background: #000; }
+    #modal-body { padding: 20px 24px; }
+    #modal-body h3 { color: #fff; font-size: 1rem; margin-bottom: 12px; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; font-size: .85rem; }
+    .detail-label { color: #666; }
+    .detail-val   { color: #ccc; }
+    #nearby-section { margin-top: 16px; }
+    #nearby-grid { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; margin-top: 8px; }
+    .nearby-thumb img { width: 100px; height: 75px; object-fit: cover; border-radius: 5px;
+                        border: 2px solid transparent; cursor: pointer; }
+    .nearby-thumb img:hover { border-color: #3b82f6; }
+    .nearby-label { font-size: .68rem; color: #666; text-align: center; margin-top: 3px; }
+
+    /* ── Misc ── */
+    .hidden { display: none !important; }
+    #empty  { color: #555; font-size: .9rem; padding: 40px 0; text-align: center; }
+    .error-banner { background: #450a0a; border: 1px solid #7f1d1d; border-radius: 6px;
+                    padding: 12px 16px; color: #fca5a5; font-size: .85rem; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────── -->
+<div id="sidebar">
+  <h1>📷 Photo Curator</h1>
+  <h3>Trips</h3>
+  <div id="trip-list"><span style="color:#555;font-size:.85rem">Loading…</span></div>
+</div>
+
+<!-- ── Main ──────────────────────────────────────────────── -->
+<div id="main">
+
+  <!-- Controls -->
+  <div class="controls" id="controls">
+    <div id="api-key-wrap">
+      <label>Anthropic API key <span style="color:#dc2626">*</span></label>
+      <input type="password" id="api-key" placeholder="sk-ant-… (required)">
+    </div>
+    <div>
+      <label>Top N photos</label>
+      <input type="number" id="top-n" value="20" min="5" max="100">
+    </div>
+    <div>
+      <label>Dedup threshold</label>
+      <input type="number" id="threshold" value="24" min="0" max="64">
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn-primary" id="btn-run" onclick="startCuration(false)">Curate</button>
+      <button class="btn-ghost"   id="btn-rerun" onclick="startCuration(true)" style="display:none">Re-run</button>
+      <button class="btn-danger"  id="btn-cancel" onclick="cancelJob()" style="display:none">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Error banner -->
+  <div class="error-banner hidden" id="error-banner"></div>
+
+  <!-- Progress -->
+  <div id="progress" class="hidden">
+    <div class="phase-row">
+      <div class="phase-chip" id="chip-scan">Scanning</div>
+      <div class="phase-chip" id="chip-select">Selecting</div>
+      <div class="phase-chip" id="chip-sequence">Sequencing</div>
+    </div>
+    <div class="pbar-wrap"><div class="pbar" id="pbar"></div></div>
+    <div class="status-line" id="status-line">Starting…</div>
+    <div id="agent-log"></div>
+  </div>
+
+  <!-- Narrative banner -->
+  <div id="narrative" class="hidden">
+    <h2 id="narrative-title"></h2>
+    <p id="narrative-summary"></p>
+  </div>
+
+  <!-- Gallery -->
+  <div id="empty" class="hidden">Select a trip and click Curate.</div>
+  <div id="gallery"></div>
+
+</div>
+
+<!-- ── Detail Modal ───────────────────────────────────────── -->
+<div id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div id="modal">
+    <img id="modal-img" src="" alt="">
+    <div id="modal-body">
+      <h3 id="modal-title"></h3>
+      <div class="detail-grid" id="modal-detail"></div>
+      <div id="nearby-section" class="hidden">
+        <h3 style="margin-top:16px">Nearby shots (±90s)</h3>
+        <div id="nearby-grid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentTrip = null;
+  let currentJobId = null;
+  let currentShortlist = [];
+  let chapterBreaks = {};
+  let es = null;
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+  fetch('/api/config').then(r => r.json()).then(cfg => {
+    const wrap = document.getElementById('api-key-wrap');
+    if (cfg.has_api_key) {
+      wrap.style.display = 'none';
+    } else {
+      const savedKey = localStorage.getItem('anthropic_api_key');
+      if (savedKey) document.getElementById('api-key').value = savedKey;
+      document.getElementById('api-key').addEventListener('change', () => {
+        const v = document.getElementById('api-key').value.trim();
+        if (v) localStorage.setItem('anthropic_api_key', v);
+      });
+    }
+  });
+
+  fetch('/api/trips').then(r => r.json()).then(trips => {
+    const el = document.getElementById('trip-list');
+    if (!trips.length) { el.innerHTML = '<span style="color:#555;font-size:.85rem">No trips found in mytrips/</span>'; return; }
+    el.innerHTML = '';
+    trips.forEach(t => {
+      const d = document.createElement('div');
+      d.className = 'trip-item';
+      d.innerHTML = `<span>${t.name}</span><span class="trip-count">${t.count} photos</span>`;
+      d.onclick = () => selectTrip(t.name, d);
+      el.appendChild(d);
+    });
+  });
+
+  function selectTrip(name, el) {
+    currentTrip = name;
+    document.querySelectorAll('.trip-item').forEach(e => e.classList.remove('active'));
+    el.classList.add('active');
+    resetUI();
+    showEmpty('Select options and click Curate.');
+  }
+
+  // ── Curation ──────────────────────────────────────────────────────────────
+  function startCuration(force) {
+    if (!currentTrip) { alert('Select a trip first.'); return; }
+    const apiKeyEl = document.getElementById('api-key');
+    const keyFieldVisible = document.getElementById('api-key-wrap').style.display !== 'none';
+    if (keyFieldVisible && !apiKeyEl.value.trim()) {
+      apiKeyEl.focus();
+      apiKeyEl.style.borderColor = '#dc2626';
+      showError('Enter your Anthropic API key (sk-ant-…) in the field above.');
+      return;
+    }
+    apiKeyEl.style.borderColor = '';
+    resetUI();
+    setPhase('scan');
+    document.getElementById('progress').classList.remove('hidden');
+    document.getElementById('btn-run').disabled = true;
+    document.getElementById('btn-cancel').style.display = '';
+    document.getElementById('btn-rerun').style.display = 'none';
+
+    fetch('/api/curate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        trip: currentTrip,
+        top_n: +document.getElementById('top-n').value,
+        threshold: +document.getElementById('threshold').value,
+        api_key: document.getElementById('api-key').value.trim() || undefined,
+        force: force,
+      }),
+    }).then(r => r.json()).then(data => {
+      if (data.error) { showError(data.error); return; }
+      if (data.cached) { renderComplete(data); return; }
+      openSSE(data.job_id);
+    });
+  }
+
+  function cancelJob() {
+    if (!currentJobId) return;
+    fetch(`/api/cancel/${currentJobId}`, {method: 'POST'});
+  }
+
+  // ── SSE ───────────────────────────────────────────────────────────────────
+  function openSSE(jobId) {
+    currentJobId = jobId;
+    es = new EventSource(`/api/progress/${jobId}`);
+
+    es.addEventListener('scan_start', () => {
+      setPhase('scan'); setStatus('Scanning photos…');
+    });
+
+    es.addEventListener('scanning', e => {
+      const d = JSON.parse(e.data);
+      const pct = Math.round(d.done / d.total * 40); // 0-40%
+      setProgress(pct);
+      const phaseLabel = { narrative_classify: 'classifying', aesthetic_score: 'scoring', done: '' }[d.phase] || d.phase;
+      setStatus(`[${d.done}/${d.total}] ${d.filename}${phaseLabel ? ' — ' + phaseLabel : ''}`);
+    });
+
+    es.addEventListener('scan_complete', () => {
+      setProgress(40); markPhase('scan', 'done'); setPhase('select');
+    });
+
+    es.addEventListener('selecting', e => {
+      const d = JSON.parse(e.data);
+      const pct = parseInt(document.getElementById('pbar').style.width) || 40;
+      setProgress(Math.min(70, pct + 2));
+      if (d.tool) appendLog('tool', `SelectionAgent → ${d.tool}(${JSON.stringify(d.input || {}).slice(0, 80)})`);
+      if (d.stop_reason === 'end_turn') markPhase('select', 'done');
+    });
+
+    es.addEventListener('selection_complete', e => {
+      const d = JSON.parse(e.data);
+      setProgress(70); markPhase('select', 'done'); setPhase('sequence');
+      setStatus(`Selected ${d.count} photos — sequencing…`);
+    });
+
+    es.addEventListener('sequencing', e => {
+      const d = JSON.parse(e.data);
+      setProgress(Math.min(95, (parseInt(document.getElementById('pbar').style.width) || 70) + 3));
+      if (d.tool) appendLog('tool', `SequencingAgent → ${d.tool}(${JSON.stringify(d.input || {}).slice(0, 80)})`);
+    });
+
+    es.addEventListener('complete', e => {
+      const d = JSON.parse(e.data);
+      es.close();
+      renderComplete(d);
+    });
+
+    es.addEventListener('cancelled', () => {
+      es.close();
+      setStatus('Cancelled.');
+      endJob();
+    });
+
+    es.addEventListener('error', e => {
+      const d = JSON.parse(e.data || '{}');
+      es.close();
+      showError(d.message || 'Unknown error');
+      endJob();
+    });
+
+    es.addEventListener('close', () => { es.close(); endJob(); });
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  function renderComplete(data) {
+    setProgress(100);
+    markPhase('scan', 'done'); markPhase('select', 'done'); markPhase('sequence', 'done');
+    endJob();
+
+    currentShortlist = data.shortlist || [];
+    chapterBreaks = {};
+    (data.chapter_breaks || []).forEach(b => { chapterBreaks[b.after_filename] = b.chapter_title; });
+
+    // Narrative banner
+    if (data.narrative_title) {
+      document.getElementById('narrative-title').textContent = data.narrative_title;
+      document.getElementById('narrative-summary').textContent = data.narrative_summary || '';
+      document.getElementById('narrative').classList.remove('hidden');
+    }
+
+    // Gallery
+    const gallery = document.getElementById('gallery');
+    gallery.innerHTML = '';
+    currentShortlist.forEach((p, i) => {
+      if (chapterBreaks[i > 0 ? currentShortlist[i-1].filename : null]) {
+        const br = document.createElement('div');
+        br.className = 'chapter-break';
+        br.style.gridColumn = '1/-1';
+        br.textContent = chapterBreaks[currentShortlist[i-1].filename];
+        gallery.appendChild(br);
+      }
+      gallery.appendChild(buildCard(p));
+    });
+
+    document.getElementById('btn-rerun').style.display = '';
+    setStatus(`Done — ${currentShortlist.length} photos in your album.`);
+  }
+
+  function buildCard(p) {
+    const card = document.createElement('div');
+    card.className = 'photo-card';
+    const ai = p.ai_scores || {};
+    const faces = p.face_detection;
+    const tags = [
+      p.narrative_category ? `<span class="tag narrative">${p.narrative_category}</span>` : '',
+      p.emotional_tone     ? `<span class="tag tone">${p.emotional_tone}</span>` : '',
+      p.subject_type && p.subject_type !== 'other' ? `<span class="tag">${p.subject_type}</span>` : '',
+      faces && faces.face_count > 0 ? `<span class="tag faces">👤 ${faces.face_count}</span>` : '',
+    ].join('');
+
+    card.innerHTML = `
+      <img src="/photos/${currentTrip}/${encodeURIComponent(p.filename)}" loading="lazy" alt="${p.filename}">
+      <div class="photo-meta">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span class="photo-rank">#${p.rank || '?'}</span>
+          <span class="photo-score">${(p.aggregate_score||0).toFixed(2)}</span>
+        </div>
+        <div class="photo-tags">${tags}</div>
+        <div class="score-bars">
+          <span>Comp</span><div class="sbar"><div class="sbar-fill" style="width:${(ai.composition||0)*10}%"></div></div><span>${(ai.composition||0).toFixed(1)}</span>
+          <span>Clarity</span><div class="sbar"><div class="sbar-fill" style="width:${(ai.subject_clarity||0)*10}%"></div></div><span>${(ai.subject_clarity||0).toFixed(1)}</span>
+          <span>Unique</span><div class="sbar"><div class="sbar-fill" style="width:${(ai.uniqueness||0)*10}%"></div></div><span>${(ai.uniqueness||0).toFixed(1)}</span>
+        </div>
+        ${p.reason ? `<div class="photo-reason">${p.reason}</div>` : ''}
+      </div>`;
+    card.onclick = () => openModal(p);
+    return card;
+  }
+
+  // ── Modal ─────────────────────────────────────────────────────────────────
+  function openModal(p) {
+    document.getElementById('modal-img').src = `/photos/${currentTrip}/${encodeURIComponent(p.filename)}`;
+    document.getElementById('modal-title').textContent = p.filename;
+    const ai = p.ai_scores || {};
+    const blur = p.blur_detection || {};
+    const exp = p.exposure_analysis || {};
+    const faces = p.face_detection || {};
+    document.getElementById('modal-detail').innerHTML = `
+      <span class="detail-label">Score</span>      <span class="detail-val">${(p.aggregate_score||0).toFixed(4)}</span>
+      <span class="detail-label">Scene</span>       <span class="detail-val">${p.scene_id || '—'}</span>
+      <span class="detail-label">Category</span>    <span class="detail-val">${p.narrative_category || '—'}</span>
+      <span class="detail-label">Tone</span>        <span class="detail-val">${p.emotional_tone || '—'}</span>
+      <span class="detail-label">Setting</span>     <span class="detail-val">${p.setting || '—'}</span>
+      <span class="detail-label">Taken</span>       <span class="detail-val">${p.taken_at ? p.taken_at.replace('T',' ') : '—'}</span>
+      <span class="detail-label">Composition</span> <span class="detail-val">${(ai.composition||0).toFixed(1)}</span>
+      <span class="detail-label">Clarity</span>     <span class="detail-val">${(ai.subject_clarity||0).toFixed(1)}</span>
+      <span class="detail-label">Uniqueness</span>  <span class="detail-val">${(ai.uniqueness||0).toFixed(1)}</span>
+      <span class="detail-label">Sharpness</span>   <span class="detail-val">${(blur.sharpness_score||0).toFixed(2)}${blur.is_blurry?' 🔴':''}</span>
+      <span class="detail-label">Exposure</span>    <span class="detail-val">${(exp.exposure_score||0).toFixed(2)}${exp.is_overexposed?' ☀️':exp.is_underexposed?' 🌑':''}</span>
+      <span class="detail-label">Faces</span>       <span class="detail-val">${faces.face_count||0}</span>
+    `;
+    document.getElementById('nearby-section').classList.add('hidden');
+    document.getElementById('modal-overlay').classList.add('open');
+    loadNearby(p.filename);
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+
+  function loadNearby(filename) {
+    fetch(`/api/nearby/${currentTrip}/${encodeURIComponent(filename)}`)
+      .then(r => r.json()).then(data => {
+        if (!data.nearby || !data.nearby.length) return;
+        const grid = document.getElementById('nearby-grid');
+        grid.innerHTML = '';
+        data.nearby.forEach(n => {
+          const div = document.createElement('div');
+          div.className = 'nearby-thumb';
+          div.innerHTML = `<img src="/photos/${currentTrip}/${encodeURIComponent(n.filename)}" alt="${n.filename}" title="${n.filename} (${n.seconds_apart}s apart)">
+            <div class="nearby-label">±${n.seconds_apart}s</div>`;
+          div.querySelector('img').onclick = () => {
+            const full = currentShortlist.find(p => p.filename === n.filename);
+            if (full) openModal(full);
+          };
+          grid.appendChild(div);
+        });
+        document.getElementById('nearby-section').classList.remove('hidden');
+      });
+  }
+
+  // ── UI helpers ────────────────────────────────────────────────────────────
+  function resetUI() {
+    document.getElementById('gallery').innerHTML = '';
+    document.getElementById('narrative').classList.add('hidden');
+    document.getElementById('progress').classList.add('hidden');
+    document.getElementById('error-banner').classList.add('hidden');
+    document.getElementById('agent-log').innerHTML = '';
+    document.getElementById('btn-rerun').style.display = 'none';
+    ['scan','select','sequence'].forEach(p => {
+      const c = document.getElementById(`chip-${p}`);
+      c.className = 'phase-chip';
+    });
+    setProgress(0);
+  }
+
+  function showEmpty(msg) {
+    const el = document.getElementById('empty');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-banner');
+    el.textContent = '⚠ ' + msg;
+    el.classList.remove('hidden');
+    endJob();
+  }
+
+  function endJob() {
+    currentJobId = null;
+    document.getElementById('btn-run').disabled = false;
+    document.getElementById('btn-cancel').style.display = 'none';
+    document.getElementById('btn-rerun').style.display = '';
+  }
+
+  function setProgress(pct) {
+    document.getElementById('pbar').style.width = pct + '%';
+  }
+
+  function setStatus(msg) {
+    document.getElementById('status-line').textContent = msg;
+  }
+
+  function setPhase(phase) {
+    const map = { scan: 'chip-scan', select: 'chip-select', sequence: 'chip-sequence' };
+    const el = document.getElementById(map[phase]);
+    if (el) el.classList.add('active');
+  }
+
+  function markPhase(phase, state) {
+    const map = { scan: 'chip-scan', select: 'chip-select', sequence: 'chip-sequence' };
+    const el = document.getElementById(map[phase]);
+    if (!el) return;
+    el.classList.remove('active');
+    el.classList.add(state);
+  }
+
+  function appendLog(type, msg) {
+    const log = document.getElementById('agent-log');
+    const line = document.createElement('div');
+    line.className = type === 'tool' ? 'log-tool' : 'log-phase';
+    line.textContent = msg;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
